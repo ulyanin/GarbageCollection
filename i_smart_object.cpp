@@ -20,9 +20,12 @@ ISmartObject::~ISmartObject()
 
 void * ISmartObject::operator new(size_t size)
 {
-    void * ptr = GarbageCollection::getInstance().allocate_(size);
-//    std::cout << "new " << ptr << " " << addToVoidPointer(ptr, size) << " " << size << " bytes" << std::endl;
-    return ptr;
+    return GarbageCollection::getInstance().allocate_(size);
+}
+
+void * ISmartObject::operator new [](size_t size)
+{
+    return GarbageCollection::getInstance().allocate_(size);
 }
 
 //void ISmartObject::operator delete(void * data)

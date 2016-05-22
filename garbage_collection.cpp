@@ -142,7 +142,10 @@ void GarbageCollection::deleteObjectsInUnusedMemory_()
     }
     for (auto obj : toDelete) {
         if (isInRegisteredHeapObjects_(obj)) {
-            obj->~ISmartObject();
+            /*
+             * we should check because ~ISmartObject may be called by other ISmartObject *
+             */
+            obj->~ISmartObject();  // will be destroy and unregister that object
         }
     }
 }

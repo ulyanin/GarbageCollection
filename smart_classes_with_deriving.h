@@ -245,8 +245,30 @@ void test_smart_classes_with_deriving_4()
             gb.isPointerSteelAlive(ptrB) << " " <<
             gb.isPointerSteelAlive(ptrC) << " " <<
             gb.isPointerSteelAlive(ptrD) << " " << std::endl;
+}
 
-
+void test_smart_classes_with_deriving_5()
+{
+    // trying some tests with array and check if all pointers are achievable after GC
+    std::cout << "test5: B * barr = new B[10], B b-> barr[0]; barr[9] -> A * a, barr[8] -> C * c" << std::endl;
+    std::cout << "test5: check that GC will not delete c" << std::endl;
+    test2::B *barr = new test2::B[10];
+    test2::B b(1);
+    b.add_servant(dynamic_cast<ISmartObject *>(&barr[0]));
+    test2::A * a = new test2::A();
+    test2::C * c = new test2::C(42);
+    ISmartObject * ptrA = dynamic_cast<ISmartObject *>(a);
+    ISmartObject * ptrC = dynamic_cast<ISmartObject *>(c);
+    barr[9].add_servant(ptrA);
+    barr[8].add_servant(ptrC);
+    GarbageCollection &gb = GarbageCollection::getInstance();
+    std::cout << "test4: reachable before: " <<
+            gb.isPointerSteelAlive(ptrA) << " " <<
+            gb.isPointerSteelAlive(ptrC) << " " << std::endl;
+    gb.collectGarbage();
+    std::cout << "test4: reachable after garbage collection: " <<
+            gb.isPointerSteelAlive(ptrA) << " " <<
+            gb.isPointerSteelAlive(ptrC) << " " << std::endl;
 }
 
 #endif //GARBAGECOLLECTION_SMART_CLASSES_WITH_DERIVING_H
