@@ -14,7 +14,7 @@ public:
     ISmartObject();
     virtual std::vector<ISmartObject *> pointers() const = 0; // Should be implemented by user
     static void* operator new(size_t size);
-    static void operator delete(void * data);
+//    static void operator delete(void * data);
     virtual ~ISmartObject();
     bool hasCheckedByCollection() const;
     void markAsChecked();  // marking as checked; need for dfs in Garbage Collection

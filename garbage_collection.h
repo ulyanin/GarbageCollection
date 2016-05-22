@@ -44,12 +44,13 @@ protected:
     void deleteObjectsInUnusedMemory_();
     void deleteUnusedMemory_();  /* must be called after deleteObjectsInUnusedMemory_ !!! */
     void deleteObjectFromCollection_(ISmartObject * object);
-    void deleteMemoryPieceFromCollection_(void * ptrInside);
+    void deleteMemoryPieceFromCollection_(void * ptrEnd);
     friend class GarbageCollecionDestroyer;
     friend class ISmartObject;
 
     std::set<ISmartObject *> registeredHeapObjects_,
-            registeredStackObjects_;
+                             registeredStackObjects_;
+
     std::map<void *, ptrdiff_t> registeredHeapMemoryPieces_;
     std::map<void *, bool> isAchievableByDfsMemoryPiece_;
 public:
@@ -61,7 +62,7 @@ public:
         //array
     };
     void * allocate(size_t memsize);
-    void * deallocate(void * data);
+//    void * deallocate(void * data);
     void registerObject(ISmartObject * obj_ptr);
     void registerHeapMemory(void * ptr, size_t size);
     void collectGarbage();

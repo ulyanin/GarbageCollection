@@ -17,6 +17,9 @@ GarbageCollectionDestroyer GarbageCollection::destroyer_;
 
 GarbageCollectionDestroyer::~GarbageCollectionDestroyer()
 {
+    std::cout << "GBdestroyer destructor" << std::endl;
+    if (instance_ != nullptr)
+        instance_->collectGarbage();
     delete instance_;
 }
 
@@ -42,7 +45,11 @@ GarbageCollection::GarbageCollection()
 { }
 
 GarbageCollection::~GarbageCollection()
-{ }
+{
+#ifdef GB_LOG
+    std::cout << "GB destructor" << std::endl;
+#endif
+}
 
 void* GarbageCollection::allocate(size_t mem_size)
 {
@@ -54,17 +61,21 @@ void* GarbageCollection::allocate(size_t mem_size)
     return mem_ptr;
 }
 
-void* GarbageCollection::deallocate(void *data)
-{
-
-}
+//void* GarbageCollection::deallocate(void *data)
+//{
+//
+//}
 
 bool GarbageCollection::isInRegisteredHeapMemory_(void * objPtr)
 {
-    auto itUp = registeredHeapMemoryPieces_.find(objPtr);
+    auto itUp = registeredHeapMemoryPieces_.upper_bound(objPtr);
     if (itUp == registeredHeapMemoryPieces_.end())
         return false;
-    return objPtr <= addToVoidPointer(itUp->first, -itUp->second);
+    /*
+     * begin of found piece lesser then obj address
+     * so return true if exist piece (begin, end) : begin <= objPtr < end
+     */
+    return addToVoidPointer(itUp->first, -itUp->second) <= objPtr;
 }
 
 void GarbageCollection::registerObject(ISmartObject *ptr)
@@ -79,19 +90,11 @@ void GarbageCollection::registerObject(ISmartObject *ptr)
 void GarbageCollection::registerHeapMemory(void *ptr, size_t size)
 {
     auto ptr_end = addToVoidPointer(ptr, size);
+#ifdef GB_LOG
+    std::cout << "\tstore " << ptr << " " << ptr_end << std::endl;
+#endif
     registeredHeapMemoryPieces_[ptr_end] = size;
     isAchievableByDfsMemoryPiece_[ptr_end] = false;
-}
-
-void GarbageCollection::dfs_(ISmartObject *object)
-{
-
-    if (object->hasCheckedByCollection())
-        return;
-    object->markAsChecked();
-    for (auto subject: object->pointers()) {
-        dfs_(subject);
-    }
 }
 
 void GarbageCollection::markUsedMemory_()
@@ -102,7 +105,9 @@ void GarbageCollection::markUsedMemory_()
         }
         auto itUp = isAchievableByDfsMemoryPiece_.upper_bound(obj);
         if (itUp == isAchievableByDfsMemoryPiece_.end()) {
-            std::cerr << "unregistered object in memory; ptr=" << obj << std::endl;
+#ifdef GB_LOG
+            std::cerr << "markUsedMem: unregistered object in memory; ptr=" << obj << std::endl;
+#endif
             continue;
         }
         itUp->second = true;
@@ -114,7 +119,9 @@ void GarbageCollection::deleteObjectsInUnusedMemory_()
     for (auto obj : registeredHeapObjects_) {
         auto itUp = isAchievableByDfsMemoryPiece_.upper_bound(obj);
         if (itUp == isAchievableByDfsMemoryPiece_.end()) {
+#ifdef GB_LOG
             std::cerr << "unregistered object in memory; ptr=" << obj << std::endl;
+#endif
             continue;
         }
         if (!itUp->second) { /*so we are in unused memory*/
@@ -137,19 +144,28 @@ void GarbageCollection::deleteUnusedMemory_()
     }
 }
 
-void GarbageCollection::deleteMemoryPieceFromCollection_(void * ptrInside)
+void GarbageCollection::deleteMemoryPieceFromCollection_(void * ptrEnd)
 {
-    auto itUp1 = isAchievableByDfsMemoryPiece_.upper_bound(ptrInside);
+    auto itUp1 = isAchievableByDfsMemoryPiece_.find(ptrEnd);
     if (itUp1 == isAchievableByDfsMemoryPiece_.end()) {
-        std::cerr << "unregistered object in memory; ptr=" << ptrInside << std::endl;
+#ifdef GB_LOG
+        std::cerr << "delMemPiece 1 unregistered object in memory; ptr=" << ptrEnd << std::endl;
+#endif
         return;
     }
     isAchievableByDfsMemoryPiece_.erase(itUp1);
-    auto itUp2 = registeredHeapMemoryPieces_.upper_bound(ptrInside);
+    auto itUp2 = registeredHeapMemoryPieces_.find(ptrEnd);
     if (itUp2 == registeredHeapMemoryPieces_.end()) {
-        std::cerr << "unregistered object in memory; ptr=" << ptrInside << std::endl;
+#ifdef GB_LOG
+        std::cerr << "delMemPiece 2 unregistered object in memory; ptr=" << ptrEnd << std::endl;
+#endif
         return;
     }
+    void *ptrBegin = addToVoidPointer(itUp2->first, -itUp2->second);
+#ifdef GB_LOG
+    std::cout << "\tfree " << ptrBegin << " " << ptrEnd << std::endl;
+#endif
+    free(ptrBegin);
     registeredHeapMemoryPieces_.erase(itUp2);
 }
 
@@ -171,9 +187,22 @@ void GarbageCollection::deleteObjectFromCollection_(ISmartObject *object)
     else if (isInRegisteredStackObjects_(object)) {
         registeredStackObjects_.erase(object);
     } else {
+#ifdef GB_LOG
         std::cerr << "object " << object
                   << " is neither in registered stack and heap objects"
                   << std::endl;
+#endif
+    }
+}
+
+void GarbageCollection::dfs_(ISmartObject *object)
+{
+
+    if (object->hasCheckedByCollection())
+        return;
+    object->markAsChecked();
+    for (auto subject: object->pointers()) {
+        dfs_(subject);
     }
 }
 
