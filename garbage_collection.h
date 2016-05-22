@@ -70,5 +70,8 @@ public:
 
 };
 
-
+inline void * addToVoidPointer(void * ptr, std::ptrdiff_t diff)
+{
+    return static_cast<void *>(static_cast<char *>(ptr) + diff);
+}
 #endif

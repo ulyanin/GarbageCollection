@@ -51,6 +51,7 @@ int main()
     test_smart_classes_with_deriving_1();
     test_smart_classes_with_deriving_2();
     test_smart_classes_with_deriving_3();
+    test_smart_classes_with_deriving_4();
     /* demonstrate smart singleton than collects garbage in the end of his life */
     SmartHeapBinaryTree::Node root(10);
     root.left = new SmartHeapBinaryTree::Node(50);

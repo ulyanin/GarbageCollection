@@ -128,6 +128,65 @@ namespace test3
     };
 }
 
+namespace test4
+{
+    class CInternal : virtual public ISmartObject
+    {
+    public:
+        CInternal()
+        {
+            std::cout << "internal ()" << std::endl;
+        }
+        ~CInternal()
+        {
+            std::cout << "internal ~()" << std::endl;
+        }
+
+        void add_servant(ISmartObject * s)
+        {
+            servants.push_back(s);
+        }
+
+        virtual std::vector<ISmartObject *> pointers() const
+        {
+            return servants;
+        }
+
+        std::vector<ISmartObject *> servants;
+    };
+
+    class CExternal : virtual public ISmartObject
+    {
+    public:
+        CExternal(): sub()
+        {
+            std::cout << "external ()" << std::endl;
+        }
+        ~CExternal()
+        {
+            std::cout << "external ~()" << std::endl;
+        }
+        CInternal* getInternal()
+        {
+            return &sub;
+        }
+        void add_servant(ISmartObject * s)
+        {
+            servants.push_back(s);
+        }
+
+        virtual std::vector<ISmartObject *> pointers() const
+        {
+            return servants;
+        }
+
+        std::vector<ISmartObject *> servants;
+    private:
+        CInternal sub;
+    };
+
+}
+
 void test_smart_classes_with_deriving_1()
 {
     std::cout << "test1: create class pointer to class A" << std::endl;
@@ -161,6 +220,33 @@ void test_smart_classes_with_deriving_3()
     test3::B * b = new test3::B(2);
     a->add_servant(b);
     b->add_servant(a);
+}
+void test_smart_classes_with_deriving_4()
+{
+    // test that was failed by Ilya Romanenko :)
+    std::cout << "test4: A -- stack, B, C, D -- Heap;" << std::endl;
+    std::cout << "test4: A references to B; B stores inside C; C references to D" << std::endl;
+    test4::CInternal A;
+    test4::CExternal* B = new test4::CExternal();
+    A.add_servant(B);
+    test4::CInternal* C = B->getInternal();
+    test4::CInternal* D = new test4::CInternal();
+    C->add_servant(D);
+    ISmartObject * ptrB = dynamic_cast<ISmartObject *>(B);
+    ISmartObject * ptrC = dynamic_cast<ISmartObject *>(C);
+    ISmartObject * ptrD = dynamic_cast<ISmartObject *>(D);
+    GarbageCollection &gb = GarbageCollection::getInstance();
+    std::cout << "test4: reachable before: " <<
+            gb.isPointerSteelAlive(ptrB) << " " <<
+            gb.isPointerSteelAlive(ptrC) << " " <<
+            gb.isPointerSteelAlive(ptrD) << " " << std::endl;
+    gb.collectGarbage();
+    std::cout << "test4: reachable after garbage collection: " <<
+            gb.isPointerSteelAlive(ptrB) << " " <<
+            gb.isPointerSteelAlive(ptrC) << " " <<
+            gb.isPointerSteelAlive(ptrD) << " " << std::endl;
+
+
 }
 
 #endif //GARBAGECOLLECTION_SMART_CLASSES_WITH_DERIVING_H
