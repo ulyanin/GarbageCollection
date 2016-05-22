@@ -7,7 +7,7 @@ ISmartObject::ISmartObject()
 #ifdef GB_LOG
     std::cout << "register object: " << this << std::endl;
 #endif
-    GarbageCollection::getInstance().registerObject(this);
+    GarbageCollection::getInstance().registerObject_(this);
 }
 
 ISmartObject::~ISmartObject()
@@ -20,12 +20,12 @@ ISmartObject::~ISmartObject()
 
 void * ISmartObject::operator new(size_t size)
 {
-    return GarbageCollection::getInstance().allocate(size);
+    return GarbageCollection::getInstance().allocate_(size);
 }
 
 //void ISmartObject::operator delete(void * data)
 //{
-//    GarbageCollection::getInstance().deallocate(data);
+//    //need to throw exception
 //}
 
 bool ISmartObject::hasCheckedByCollection() const
